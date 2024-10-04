@@ -28,6 +28,69 @@ const SYNERGY = {
   Warrior: 27,
 };
 
+const UNIT = {
+  Ahri: 1,
+  Akali: 2,
+  Ashe: 3,
+  Bard: 4,
+  Blitzcrank: 5,
+  Briar: 6,
+  Camille: 7,
+  Cassiopeia: 8,
+  Diana: 9,
+  Elise: 10,
+  Ezreal: 11,
+  Fiora: 12,
+  Galio: 13,
+  Gwen: 14,
+  Hecarim: 15,
+  Hwei: 16,
+  Jax: 17,
+  Jayce: 18,
+  Jinx: 19,
+  Kalista: 20,
+  Karma: 21,
+  Kassadin: 22,
+  Katarina: 23,
+  "Kog'Maw": 24,
+  Lillia: 25,
+  Milio: 26,
+  Mordekaiser: 27,
+  Morgana: 28,
+  Nami: 29,
+  Nasus: 30,
+  Neeko: 31,
+  Nilah: 32,
+  Nomsy: 33,
+  Norra: 34,
+  Nunu: 35,
+  Olaf: 36,
+  Poppy: 37,
+  Rakan: 38,
+  Rumble: 39,
+  Ryze: 40,
+  Seraphine: 41,
+  Shen: 42,
+  Shyvana: 43,
+  Smolder: 44,
+  Soraka: 45,
+  Swain: 46,
+  Syndra: 47,
+  "Tahm Kench": 48,
+  Taric: 49,
+  Tristana: 50,
+  Twitch: 51,
+  Varus: 52,
+  Veigar: 53,
+  Vex: 54,
+  Warwick: 55,
+  Wukong: 56,
+  Xerath: 57,
+  Ziggs: 58,
+  Zilean: 59,
+  Zoe: 60,
+};
+
 const SYNERGY_INFO = [
   {
     id: 1,
@@ -123,7 +186,7 @@ const SYNERGY_INFO = [
       UNIT.Jayce,
       UNIT.Zoe,
       UNIT.Galio,
-      UNOT.Kassadin,
+      UNIT.Kassadin,
       UNIT.Ezreal,
       UNIT.Ryze,
       UNIT.Taric,
@@ -311,69 +374,6 @@ const SYNERGY_INFO = [
     condition: [2, 4, 6],
   },
 ];
-
-const UNIT = {
-  Ahri: 1,
-  Akali: 2,
-  Ashe: 3,
-  Bard: 4,
-  Blitzcrank: 5,
-  Briar: 6,
-  Camille: 7,
-  Cassiopeia: 8,
-  Diana: 9,
-  Elise: 10,
-  Ezreal: 11,
-  Fiora: 12,
-  Galio: 13,
-  Gwen: 14,
-  Hecarim: 15,
-  Hwei: 16,
-  Jax: 17,
-  Jayce: 18,
-  Jinx: 19,
-  Kalista: 20,
-  Karma: 21,
-  Kassadin: 22,
-  Katarina: 23,
-  "Kog'Maw": 24,
-  Lillia: 25,
-  Milio: 26,
-  Mordekaiser: 27,
-  Morgana: 28,
-  Nami: 29,
-  Nasus: 30,
-  Neeko: 31,
-  Nilah: 32,
-  Nomsy: 33,
-  Norra: 34,
-  Nunu: 35,
-  Olaf: 36,
-  Poppy: 37,
-  Rakan: 38,
-  Rumble: 39,
-  Ryze: 40,
-  Seraphine: 41,
-  Shen: 42,
-  Shyvana: 43,
-  Smolder: 44,
-  Soraka: 45,
-  Swain: 46,
-  Syndra: 47,
-  "Tahm Kench": 48,
-  Taric: 49,
-  Tristana: 50,
-  Twitch: 51,
-  Varus: 52,
-  Veigar: 53,
-  Vex: 54,
-  Warwick: 55,
-  Wukong: 56,
-  Xerath: 57,
-  Ziggs: 58,
-  Zilean: 59,
-  Zoe: 60,
-};
 
 const UNIT_INFO = [
   {
@@ -797,3 +797,52 @@ const UNIT_INFO = [
     synergy: [SYNERGY.Portal, SYNERGY.Witchcraft, SYNERGY.Scholar],
   },
 ];
+
+const q = [];
+let initialSynergyStaus = [];
+for (let i = 0; i < 28; i++) {
+  initialSynergyStaus.push(0);
+}
+UNIT_INFO.forEach((unit) => {
+  const synergyStatus = [...initialSynergyStaus];
+  unit.synergy.forEach((synergy) => {
+    synergyStatus[synergy] += 1;
+  });
+  q.push({
+    level: 1,
+    totalCost: unit.cost,
+    unitList: [unit.id],
+    unitNameList: [unit.displayName],
+    synergyStatus,
+  });
+});
+
+while (q.length > 0) {
+  const current = q.shift();
+  if (current.level < 5) {
+    UNIT_INFO.forEach((unit) => {
+      let valid = false;
+      unit.synergy.forEach((s) => {
+        if (current.synergyStatus[s] > 0) {
+          valid = true;
+        }
+      });
+      if (current.unitList[current.level - 1] < unit.id && valid) {
+        const synergyStatus = [...current.synergyStatus];
+        unit.synergy.forEach((synergy) => {
+          synergyStatus[synergy] += 1;
+        });
+        q.push({
+          level: current.level + 1,
+          totalCost: current.totalCost + unit.cost,
+          unitList: [...current.unitList, unit.id],
+          unitNameList: [...current.unitNameList, unit.displayName],
+          synergyStatus,
+        });
+      }
+    });
+  } else {
+    console.log(current.unitNameList.join(","));
+    console.log("시너지: ", current.synergyStatus);
+  }
+}
