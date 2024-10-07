@@ -801,11 +801,22 @@ const UNIT_INFO = [
 const q = [];
 let initialSynergyStaus = [];
 
-const initialize = () => {
+const levelFilter = (level) => {
+  return (unit) => {
+    if (level < 5) {
+      return unit.cost < 4;
+    } else if (level < 7) {
+      return unit.cost < 5;
+    }
+    return true;
+  };
+};
+
+const initialize = (level) => {
   for (let i = 0; i < 28; i++) {
     initialSynergyStaus.push(0);
   }
-  UNIT_INFO.filter((unit) => unit.cost < 4).forEach((unit) => {
+  UNIT_INFO.filter(levelFilter(level)).forEach((unit) => {
     const synergyStatus = [...initialSynergyStaus];
     unit.synergy.forEach((synergy) => {
       synergyStatus[synergy] += 1;
@@ -820,15 +831,13 @@ const initialize = () => {
   });
 };
 
-// let csvContent = "data:text/csv;charset=utf-8,";
-
-for (let level = 3; level <= 5; level += 1) {
+for (let level = 3; level <= 8; level += 1) {
   let csvContent = "";
-  initialize();
+  initialize(level);
   while (q.length > 0) {
     const current = q.shift();
     if (current.level < level) {
-      UNIT_INFO.filter((unit) => unit.cost < 4).forEach((unit) => {
+      UNIT_INFO.filter(levelFilter(level)).forEach((unit) => {
         let valid = false;
         unit.synergy.forEach((s) => {
           if (current.synergyStatus[s] > 0) {
