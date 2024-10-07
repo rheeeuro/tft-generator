@@ -800,49 +800,76 @@ const UNIT_INFO = [
 
 const q = [];
 let initialSynergyStaus = [];
-for (let i = 0; i < 28; i++) {
-  initialSynergyStaus.push(0);
-}
-UNIT_INFO.forEach((unit) => {
-  const synergyStatus = [...initialSynergyStaus];
-  unit.synergy.forEach((synergy) => {
-    synergyStatus[synergy] += 1;
-  });
-  q.push({
-    level: 1,
-    totalCost: unit.cost,
-    unitList: [unit.id],
-    unitNameList: [unit.displayName],
-    synergyStatus,
-  });
-});
 
-while (q.length > 0) {
-  const current = q.shift();
-  if (current.level < 5) {
-    UNIT_INFO.forEach((unit) => {
-      let valid = false;
-      unit.synergy.forEach((s) => {
-        if (current.synergyStatus[s] > 0) {
-          valid = true;
+const initialize = () => {
+  for (let i = 0; i < 28; i++) {
+    initialSynergyStaus.push(0);
+  }
+  UNIT_INFO.filter((unit) => unit.cost < 4).forEach((unit) => {
+    const synergyStatus = [...initialSynergyStaus];
+    unit.synergy.forEach((synergy) => {
+      synergyStatus[synergy] += 1;
+    });
+    q.push({
+      level: 1,
+      totalCost: unit.cost,
+      unitList: [unit.id],
+      unitNameList: [unit.displayName],
+      synergyStatus,
+    });
+  });
+};
+
+// let csvContent = "data:text/csv;charset=utf-8,";
+
+for (let level = 3; level <= 5; level += 1) {
+  let csvContent = "";
+  initialize();
+  while (q.length > 0) {
+    const current = q.shift();
+    if (current.level < level) {
+      UNIT_INFO.filter((unit) => unit.cost < 4).forEach((unit) => {
+        let valid = false;
+        unit.synergy.forEach((s) => {
+          if (current.synergyStatus[s] > 0) {
+            valid = true;
+          }
+        });
+        if (current.unitList[current.level - 1] < unit.id && valid) {
+          const synergyStatus = [...current.synergyStatus];
+          unit.synergy.forEach((synergy) => {
+            synergyStatus[synergy] += 1;
+          });
+          q.push({
+            level: current.level + 1,
+            totalCost: current.totalCost + unit.cost,
+            unitList: [...current.unitList, unit.id],
+            unitNameList: [...current.unitNameList, unit.displayName],
+            synergyStatus,
+          });
         }
       });
-      if (current.unitList[current.level - 1] < unit.id && valid) {
-        const synergyStatus = [...current.synergyStatus];
-        unit.synergy.forEach((synergy) => {
-          synergyStatus[synergy] += 1;
-        });
-        q.push({
-          level: current.level + 1,
-          totalCost: current.totalCost + unit.cost,
-          unitList: [...current.unitList, unit.id],
-          unitNameList: [...current.unitNameList, unit.displayName],
-          synergyStatus,
-        });
+    } else {
+      const synergyTextList = SYNERGY_INFO.filter((synergy) => {
+        return current.synergyStatus[synergy.id] >= synergy.condition[0];
+      }).map((synergy) => {
+        let count = 0;
+        for (const cond of synergy.condition) {
+          if (cond <= current.synergyStatus[synergy.id]) {
+            count = cond;
+          } else {
+            break;
+          }
+        }
+        return `${count}${synergy.displayName}`;
+      });
+
+      if (synergyTextList.length > 0) {
+        csvContent += `[${[...current.unitNameList].join(
+          ","
+        )}]: ${synergyTextList.join(",")} \n`;
       }
-    });
-  } else {
-    console.log(current.unitNameList.join(","));
-    console.log("시너지: ", current.synergyStatus);
+    }
   }
+  console.log(csvContent);
 }
