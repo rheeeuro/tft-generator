@@ -1,6 +1,8 @@
 import { SYNERGY_INFO, UNIT_INFO } from "./data.js";
 import { Queue } from "./queue.js";
 
+const MAX_LEVEL = 5;
+
 const q = new Queue();
 let initialSynergyStaus = [];
 let initialUnitStatus = [];
@@ -39,6 +41,7 @@ const initialize = (level) => {
       totalCost: unit.cost,
       synergyStatus,
       unitStatus,
+      lastUnitId: unit.id,
     });
   });
 };
@@ -54,19 +57,20 @@ const addScore = (status) => {
         maxCond = cond;
       }
     });
-    synergyScore += maxCond;
+    synergyScore += maxCond === 1 ? 0 : maxCond;
     synergyScore -= status.synergyStatus[synergy.id] - maxCond;
   });
   return { ...status, score: status.totalCost + synergyScore };
 };
 
-for (let level = 3; level <= 4; level += 1) {
+for (let level = 3; level <= MAX_LEVEL; level += 1) {
   initialize(level);
   while (!q.isEmpty()) {
     const current = q.dequeue();
     if (current.level < level) {
-      UNIT_INFO.filter(levelFilter(current.level, current.unitStatus)).forEach(
-        (unit) => {
+      UNIT_INFO.filter((unit) => current.lastUnitId < unit.id)
+        .filter(levelFilter(current.level, current.unitStatus))
+        .forEach((unit) => {
           const synergyStatus = [...current.synergyStatus];
           const unitStatus = [...current.unitStatus];
           unitStatus[unit.id] = true;
@@ -79,10 +83,10 @@ for (let level = 3; level <= 4; level += 1) {
               totalCost: current.totalCost + unit.cost,
               synergyStatus,
               unitStatus,
+              lastUnitId: unit.id,
             })
           );
-        }
-      );
+        });
     } else {
       result.push(current);
     }
@@ -110,8 +114,10 @@ console.log(
         (unit) => status.unitStatus[unit.id]
       ).map((unit) => unit.displayName);
 
-      return `[${[...unitTextList].join(",")}]: ${synergyTextList.join(",")}, ${
-        status.score
-      }`;
+      return [
+        status.score + "점",
+        [...unitTextList].join(","),
+        synergyTextList.join(","),
+      ];
     })
 );
