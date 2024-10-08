@@ -1,3 +1,5 @@
+import { Queue } from "./queue.js";
+
 const SYNERGY = {
   Arcana: 1,
   Chrono: 2,
@@ -798,11 +800,15 @@ const UNIT_INFO = [
   },
 ];
 
-const q = [];
+const q = new Queue();
 let initialSynergyStaus = [];
+let initialUnitStatus = [];
+let result = [];
 
-const levelFilter = (level) => {
+const levelFilter = (level, unitStatus) => {
   return (unit) => {
+    if (unitStatus[unit.id]) return false;
+
     if (level < 5) {
       return unit.cost < 4;
     } else if (level < 7) {
@@ -813,58 +819,85 @@ const levelFilter = (level) => {
 };
 
 const initialize = (level) => {
-  for (let i = 0; i < 28; i++) {
+  for (let i = 0; i <= SYNERGY_INFO.length; i++) {
     initialSynergyStaus.push(0);
   }
-  UNIT_INFO.filter(levelFilter(level)).forEach((unit) => {
+  for (let i = 0; i <= UNIT_INFO.length; i++) {
+    initialUnitStatus.push(false);
+  }
+
+  UNIT_INFO.filter(levelFilter(level, initialUnitStatus)).forEach((unit) => {
     const synergyStatus = [...initialSynergyStaus];
+    const unitStatus = [...initialUnitStatus];
+    unitStatus[unit.id] = true;
     unit.synergy.forEach((synergy) => {
       synergyStatus[synergy] += 1;
     });
-    q.push({
+    q.enqueue({
       level: 1,
       totalCost: unit.cost,
-      unitList: [unit.id],
-      unitNameList: [unit.displayName],
       synergyStatus,
+      unitStatus,
     });
   });
 };
 
-for (let level = 3; level <= 8; level += 1) {
-  let csvContent = "";
+const addScore = (status) => {
+  let synergyScore = 0;
+  SYNERGY_INFO.filter(
+    (synergy) => status.synergyStatus[synergy.id] > 0
+  ).forEach((synergy) => {
+    let maxCond = 0;
+    synergy.condition.forEach((cond) => {
+      if (cond < status.synergyStatus[synergy.id]) {
+        maxCond = cond;
+      }
+    });
+    synergyScore += maxCond;
+    synergyScore -= status.synergyStatus[synergy.id] - maxCond;
+  });
+  return { ...status, score: status.totalCost + synergyScore };
+};
+
+for (let level = 3; level <= 4; level += 1) {
   initialize(level);
-  while (q.length > 0) {
-    const current = q.shift();
+  while (!q.isEmpty()) {
+    const current = q.dequeue();
     if (current.level < level) {
-      UNIT_INFO.filter(levelFilter(level)).forEach((unit) => {
-        let valid = false;
-        unit.synergy.forEach((s) => {
-          if (current.synergyStatus[s] > 0) {
-            valid = true;
-          }
-        });
-        if (current.unitList[current.level - 1] < unit.id && valid) {
+      UNIT_INFO.filter(levelFilter(current.level, current.unitStatus)).forEach(
+        (unit) => {
           const synergyStatus = [...current.synergyStatus];
+          const unitStatus = [...current.unitStatus];
+          unitStatus[unit.id] = true;
           unit.synergy.forEach((synergy) => {
             synergyStatus[synergy] += 1;
           });
-          q.push({
-            level: current.level + 1,
-            totalCost: current.totalCost + unit.cost,
-            unitList: [...current.unitList, unit.id],
-            unitNameList: [...current.unitNameList, unit.displayName],
-            synergyStatus,
-          });
+          q.enqueue(
+            addScore({
+              level: current.level + 1,
+              totalCost: current.totalCost + unit.cost,
+              synergyStatus,
+              unitStatus,
+            })
+          );
         }
-      });
+      );
     } else {
-      const synergyTextList = SYNERGY_INFO.filter((synergy) => {
-        return current.synergyStatus[synergy.id] >= synergy.condition[0];
-      }).map((synergy) => {
+      result.push(current);
+    }
+  }
+}
+
+console.log(
+  result
+    .sort((a, b) => b.score - a.score)
+    .map((status) => {
+      const synergyTextList = SYNERGY_INFO.filter(
+        (synergy) => status.synergyStatus[synergy.id] >= synergy.condition[0]
+      ).map((synergy) => {
         let count = 0;
         for (const cond of synergy.condition) {
-          if (cond <= current.synergyStatus[synergy.id]) {
+          if (cond <= status.synergyStatus[synergy.id]) {
             count = cond;
           } else {
             break;
@@ -872,13 +905,12 @@ for (let level = 3; level <= 8; level += 1) {
         }
         return `${count}${synergy.displayName}`;
       });
+      const unitTextList = UNIT_INFO.filter(
+        (unit) => status.unitStatus[unit.id]
+      ).map((unit) => unit.displayName);
 
-      if (synergyTextList.length > 0) {
-        csvContent += `[${[...current.unitNameList].join(
-          ","
-        )}]: ${synergyTextList.join(",")} \n`;
-      }
-    }
-  }
-  console.log(csvContent);
-}
+      return `[${[...unitTextList].join(",")}]: ${synergyTextList.join(",")}, ${
+        status.score
+      }`;
+    })
+);
