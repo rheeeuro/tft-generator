@@ -1,4 +1,4 @@
-import { SYNERGY_INFO, UNIT_INFO } from "./data.js";
+import { SYNERGY_INFO, UNIT, UNIT_INFO } from "./data.js";
 import { Queue } from "./queue.js";
 
 const MAX_LEVEL = 5;
@@ -53,17 +53,18 @@ const addScore = (status) => {
   ).forEach((synergy) => {
     let maxCond = 0;
     synergy.condition.forEach((cond) => {
-      if (cond < status.synergyStatus[synergy.id]) {
+      if (cond <= status.synergyStatus[synergy.id]) {
         maxCond = cond;
       }
     });
+
     synergyScore += maxCond === 1 ? 0 : maxCond;
-    synergyScore -= status.synergyStatus[synergy.id] - maxCond;
+    synergyScore -= (status.synergyStatus[synergy.id] - maxCond) * 3;
   });
   return { ...status, score: status.totalCost + synergyScore };
 };
 
-for (let level = 3; level <= MAX_LEVEL; level += 1) {
+for (let level = 5; level <= MAX_LEVEL; level += 1) {
   initialize(level);
   while (!q.isEmpty()) {
     const current = q.dequeue();
