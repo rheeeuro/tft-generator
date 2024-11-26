@@ -93,13 +93,6 @@ export const UNIT = {
 export const SYNERGY_INFO = [
   {
     id: 1,
-    name: "Arcana",
-    displayName: "아르카나",
-    unit: [UNIT.Ahri, UNIT.Hecarim, UNIT["Tahm Kench"], UNIT.Xerath],
-    condition: [2, 3, 4, 5],
-  },
-  {
-    id: 1,
     name: "Acamedy",
     displayName: "아카데미",
     unit: [UNIT.Lux, UNIT.Leona, UNIT.Ezreal, UNIT.Heimerdinger, UNIT.Jayce],
