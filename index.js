@@ -1,7 +1,7 @@
 import { SYNERGY_INFO, UNIT_INFO } from "./data13.js";
 import { Queue } from "./queue.js";
 
-const MAX_LEVEL = 5;
+const MAX_LEVEL = 7;
 
 const q = new Queue();
 let initialSynergyStaus = [];
@@ -102,6 +102,19 @@ const addScore = (status) => {
   return { ...status, score: status.totalCost + synergyScore };
 };
 
+// 점수 계산: 켜진 시너지 수
+const addCountScore = (status) => {
+  let synergyCount = 0;
+  SYNERGY_INFO.filter(
+    (synergy) =>
+      status.synergyStatus[synergy.id] >= synergy.condition[0] &&
+      synergy.condition.length > 1
+  ).forEach((synergy) => {
+    synergyCount += 1;
+  });
+  return { ...status, score: synergyCount };
+};
+
 const makeTeam = (unitId) => {
   return () => {
     initialize(unitId);
@@ -118,7 +131,7 @@ const makeTeam = (unitId) => {
               synergyStatus[synergy] += 1;
             });
             q.enqueue(
-              addScore({
+              addCountScore({
                 level: current.level + 1,
                 totalCost: current.totalCost + unit.cost,
                 synergyStatus,
@@ -162,12 +175,16 @@ const printResult = (status) => {
 };
 
 const init = () => {
-  UNIT_INFO.forEach((unit) => {
-    const button = document.createElement("button");
-    button.innerText = unit.name;
-    button.addEventListener("click", makeTeam(unit.id));
-    document.body.appendChild(button);
-  });
+  for (let cost = 1; cost <= 5; cost += 1) {
+    const div = document.createElement("div");
+    UNIT_INFO.filter((unit) => unit.cost === cost).forEach((unit) => {
+      const button = document.createElement("button");
+      button.innerText = unit.name;
+      button.addEventListener("click", makeTeam(unit.id));
+      div.appendChild(button);
+    });
+    document.body.appendChild(div);
+  }
 };
 
 init();
