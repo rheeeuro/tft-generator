@@ -1,5 +1,6 @@
 import { SYNERGY_INFO, UNIT_INFO } from "./data13.js";
 import { Queue } from "./queue.js";
+import { data } from "./level7.js";
 
 const MAX_LEVEL = 7;
 
@@ -7,6 +8,7 @@ const q = new Queue();
 let initialSynergyStaus = [];
 let initialUnitStatus = [];
 let result = [];
+let set = {};
 
 // 해당 레벨에서 확률이 희박한 코스트 유닛은 제외
 const levelFilter = (unitStatus) => {
@@ -36,14 +38,13 @@ const initializeArray = () => {
 };
 
 // 큐 초기화 후 유닛 1개 insert
-const initialize = (selectedUnitId) => {
+const initialize = (unit) => {
   initializeArray();
-  if (selectedUnitId) {
-    const selectedUnit = UNIT_INFO[selectedUnitId];
+  if (unit) {
     const synergyStatus = [...initialSynergyStaus];
     const unitStatus = [...initialUnitStatus];
-    unitStatus[selectedUnitId] = true;
-    selectedUnit.synergy.forEach((synergy) => {
+    unitStatus[unit.id] = true;
+    unit.synergy.forEach((synergy) => {
       synergyStatus[synergy] += 1;
     });
 
@@ -56,7 +57,7 @@ const initialize = (selectedUnitId) => {
       });
       q.enqueue({
         level: 2,
-        totalCost: selectedUnit.cost + unit.cost,
+        totalCost: unit.cost + unit.cost,
         synergyStatus: newSynergyStatus,
         unitStatus: newUnitStatus,
         lastUnitId: unit.id,
@@ -115,9 +116,9 @@ const addCountScore = (status) => {
   return { ...status, score: synergyCount };
 };
 
-const makeTeam = (unitId) => {
+const makeTeam = (unit) => {
   return () => {
-    initialize(unitId);
+    initialize(unit);
     while (!q.isEmpty()) {
       const current = q.dequeue();
       if (current.level < MAX_LEVEL) {
@@ -144,7 +145,8 @@ const makeTeam = (unitId) => {
         result.push(current);
       }
     }
-    console.log(result.sort((a, b) => b.score - a.score).map(printResult));
+    // console.log(result.sort((a, b) => b.score - a.score).map(printResult));
+    result.map(printResult);
   };
 };
 
@@ -167,6 +169,13 @@ const printResult = (status) => {
     (unit) => status.unitStatus[unit.id]
   ).map((unit) => unit.displayName);
 
+  if (status.score >= 8) {
+    const id = status.unitStatus.reduce((res, x) => (res << 1) | x);
+    if (!set[id]) {
+      set[id] = status;
+    }
+  }
+
   return [
     status.score + "점",
     [...unitTextList].join(","),
@@ -187,4 +196,25 @@ const init = () => {
   }
 };
 
-init();
+const init2 = () => {
+  console.log("--- start ---");
+  UNIT_INFO.filter((unit) => unit.cost < 3).forEach((unit) => {
+    console.log(unit.displayName);
+    makeTeam(unit)();
+    console.log(set);
+  });
+  console.log(set);
+};
+
+// init2();
+console.log(
+  Object.keys(data).map((key) => {
+    const value = data[key];
+    const result = printResult(value);
+    return {
+      key,
+      units: result[1],
+      synergy: result[2],
+    };
+  })
+);
